@@ -1,0 +1,321 @@
+import { motion } from "motion/react";
+import { ArrowUpRight } from "lucide-react";
+
+interface PlaygroundProject {
+  id: number;
+  title: string;
+  description: string;
+  tags: string[];
+  status: "In Progress" | "Prototype" | "Concept";
+  accentColor: string;
+  year: string;
+}
+
+const PROJECTS: PlaygroundProject[] = [
+  {
+    id: 1,
+    title: "Type Scale Explorer",
+    description:
+      "An interactive tool for building and testing visual type hierarchies. Set a base size, choose a scale ratio, and see every level rendered in real time.",
+    tags: ["Typography", "Design Tools", "React"],
+    status: "In Progress",
+    accentColor: "#B86840",
+    year: "2025",
+  },
+  {
+    id: 2,
+    title: "Accessibility Contrast Lab",
+    description:
+      "Real-time WCAG contrast checking with a palette builder. Designed for designers who want compliance to feel like creativity, not a checklist.",
+    tags: ["Accessibility", "Color", "WCAG"],
+    status: "Prototype",
+    accentColor: "#4A7A52",
+    year: "2025",
+  },
+  {
+    id: 3,
+    title: "Micro-Motion Library",
+    description:
+      "A curated collection of reusable animation patterns — easing curves, transition conventions, and interaction states — documented for design and engineering handoff.",
+    tags: ["Motion Design", "Documentation", "Figma"],
+    status: "In Progress",
+    accentColor: "#7A3818",
+    year: "2024",
+  },
+  {
+    id: 4,
+    title: "UX Card Sort",
+    description:
+      "A lightweight remote card sorting tool built for unmoderated research. Drag, sort, name your categories — results export clean into a spreadsheet.",
+    tags: ["Research", "Prototype", "React"],
+    status: "Prototype",
+    accentColor: "#4A6B7E",
+    year: "2024",
+  },
+  {
+    id: 5,
+    title: "Design System Audit Tracker",
+    description:
+      "A dashboard for tracking component health across design systems — flagging drift, inconsistencies, and coverage gaps before they become debt.",
+    tags: ["Design Systems", "Dashboard", "Tokens"],
+    status: "Concept",
+    accentColor: "#6B4A7E",
+    year: "2025",
+  },
+  {
+    id: 6,
+    title: "AI Brief Generator",
+    description:
+      "A Claude-powered tool that turns a few prompts into a full design brief: problem framing, user context, success metrics, and constraints — in minutes.",
+    tags: ["AI", "Claude API", "Design Process"],
+    status: "Concept",
+    accentColor: "#B86840",
+    year: "2025",
+  },
+];
+
+const STATUS_COLORS: Record<PlaygroundProject["status"], string> = {
+  "In Progress": "#4A7A52",
+  Prototype: "#B86840",
+  Concept: "#7A6050",
+};
+
+export function UIPlaygroundSection({ id }: { id: string }) {
+  return (
+    <section
+      id={id}
+      style={{ background: "var(--background)", padding: "6rem 0 7rem" }}
+    >
+      <div style={{ padding: "0 4rem" }}>
+        {/* Section label */}
+        <motion.p
+          initial={{ opacity: 0, x: -12 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.24em",
+            textTransform: "uppercase",
+            color: "var(--muted-foreground)",
+            margin: "0 0 12px",
+          }}
+        >
+          04 — UI Playground
+        </motion.p>
+
+        {/* Rule */}
+        <motion.div
+          style={{ height: 1, background: "var(--border)", marginBottom: 40 }}
+          initial={{ width: 0 }}
+          whileInView={{ width: "100%" }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        />
+
+        {/* Heading */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            marginBottom: 48,
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2rem, 4vw, 3.2rem)",
+              lineHeight: 1.1,
+              color: "var(--foreground)",
+              margin: 0,
+              maxWidth: 480,
+            }}
+          >
+            Passion projects & things I build for fun.
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--muted-foreground)",
+              letterSpacing: "0.08em",
+              maxWidth: 260,
+              lineHeight: 1.7,
+            }}
+          >
+            Not every idea needs a brief. These are the things I build because I can't stop thinking about them.
+          </motion.p>
+        </div>
+
+        {/* Project grid — 2 cols desktop, 1 col mobile */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: 20,
+          }}
+        >
+          {PROJECTS.map((project, i) => (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: i * 0.07, duration: 0.5, ease: "easeOut" }}
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {/* Accent top strip */}
+              <div
+                style={{ height: 3, background: project.accentColor, width: "100%" }}
+              />
+
+              <div style={{ padding: "22px 24px 24px", flex: 1, display: "flex", flexDirection: "column" }}>
+                {/* Header row */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 9,
+                        letterSpacing: "0.2em",
+                        textTransform: "uppercase",
+                        color: project.accentColor,
+                        display: "block",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {String(project.id).padStart(2, "0")} · {project.year}
+                    </span>
+                    <h3
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "1.15rem",
+                        color: "var(--foreground)",
+                        margin: 0,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {project.title}
+                    </h3>
+                  </div>
+
+                  {/* Status badge */}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 9,
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: STATUS_COLORS[project.status],
+                      border: `1px solid ${STATUS_COLORS[project.status]}44`,
+                      borderRadius: 4,
+                      padding: "3px 8px",
+                      flexShrink: 0,
+                      marginLeft: 10,
+                      marginTop: 2,
+                    }}
+                  >
+                    {project.status}
+                  </span>
+                </div>
+
+                {/* Description */}
+                <p
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "0.88rem",
+                    lineHeight: 1.72,
+                    color: "var(--muted-foreground)",
+                    margin: "0 0 18px",
+                    flex: 1,
+                  }}
+                >
+                  {project.description}
+                </p>
+
+                {/* Tags + arrow */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {project.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 9,
+                          letterSpacing: "0.08em",
+                          color: "var(--muted-foreground)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 4,
+                          padding: "2px 7px",
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <ArrowUpRight
+                    size={14}
+                    style={{ color: "var(--muted-foreground)", opacity: 0.4, flexShrink: 0 }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Footer note */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "0.14em",
+            color: "var(--muted-foreground)",
+            opacity: 0.5,
+            textAlign: "center",
+            marginTop: 40,
+          }}
+        >
+          More in the works · Always building something
+        </motion.p>
+      </div>
+    </section>
+  );
+}

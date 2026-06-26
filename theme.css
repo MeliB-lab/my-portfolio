@@ -1,0 +1,96 @@
+import { useEffect, useState } from "react";
+import { CustomCursor } from "./components/CustomCursor";
+import { AdaptiveNav } from "./components/AdaptiveNav";
+import { HeroChaosSection } from "./components/HeroChaosSection";
+import { AIAgentSection } from "./components/AIAgentSection";
+import { AboutSection } from "./components/AboutSection";
+import { WorkSection } from "./components/WorkSection";
+import { ContactSection } from "./components/ContactSection";
+import { AIAgent } from "./components/AIAgent";
+import "../styles/fonts.css";
+
+const SECTIONS = ["hero", "agent", "about", "work", "contact"] as const;
+
+function useClickSound() {
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const el = e.target as Element;
+      if (!el.closest("a, button, [role='button']")) return;
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // Mechanical mouse click: brief noise burst through bandpass filter
+        const duration = 0.012;
+        const bufferSize = Math.floor(ctx.sampleRate * duration);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.8);
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 3800;
+        filter.Q.value = 0.9;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.28, ctx.currentTime);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(ctx.currentTime);
+        noise.stop(ctx.currentTime + duration);
+      } catch {}
+    };
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, []);
+}
+
+function useActiveSection() {
+  const [active, setActive] = useState<string>("hero");
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+    SECTIONS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActive(id); },
+        { rootMargin: "-38% 0px -38% 0px" },
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
+  return active;
+}
+
+export function Portfolio() {
+  const activeSection = useActiveSection();
+  const [agentOpen, setAgentOpen] = useState(false);
+  useClickSound();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <div style={{ background: "var(--background)", fontFamily: "var(--font-body)" }}>
+      <CustomCursor />
+      <AdaptiveNav activeSection={activeSection} />
+      <main>
+        <HeroChaosSection id="hero" />
+        <AIAgentSection id="agent" />
+        <AboutSection id="about" />
+        <WorkSection id="work" onOpenAgent={() => setAgentOpen(true)} />
+        <ContactSection id="contact" />
+      </main>
+      <AIAgent
+        isOpen={agentOpen}
+        onOpen={() => setAgentOpen(true)}
+        onClose={() => setAgentOpen(false)}
+        showFloatingButton={activeSection !== "hero"}
+      />
+    </div>
+  );
+}

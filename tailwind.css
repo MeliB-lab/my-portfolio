@@ -1,0 +1,432 @@
+import { useRef, useState } from "react";
+import { motion, useScroll, useTransform, useMotionValueEvent } from "motion/react";
+
+interface HeroPuzzleSectionProps {
+  id: string;
+}
+
+// ─── Text helpers ─────────────────────────────────────────────────────────────
+
+function UnfoldLetters({ text, startDelay }: { text: string; startDelay: number }) {
+  return (
+    <span className="inline-flex">
+      {text.split("").map((char, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          initial={{ opacity: 0, filter: "blur(7px)", scale: 0.86, y: 5 }}
+          animate={{ opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }}
+          transition={{ delay: startDelay + i * 0.042, duration: 0.70, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
+function UnfoldBlock({
+  delay,
+  children,
+  style,
+}: {
+  delay: number;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(5px)", y: 10 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ delay, duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── Puzzle config ────────────────────────────────────────────────────────────
+// 6 pieces, 2 cols × 3 rows. Abstract Colima palette composition.
+// Each piece: its scatter offset (sx, sy, sr) and the scroll range it arrives over.
+
+const PIECE_SIZE = 116;
+
+const PIECES = [
+  // Top row
+  { id: 0, color: "#B86840", sx: -135, sy: -105, sr: -23, range: [0.04, 0.46] as [number, number] }, // terracotta
+  { id: 1, color: "#F0E4D2", sx: 138, sy: -118, sr: 16,  range: [0.11, 0.53] as [number, number] }, // warm cream
+  // Mid row
+  { id: 2, color: "#2A1810", sx: -148, sy:   2, sr: 19,  range: [0.18, 0.60] as [number, number] }, // deep brown
+  { id: 3, color: "#4A7A52", sx: 132, sy:  12, sr: -15,  range: [0.25, 0.67] as [number, number] }, // cactus green
+  // Bottom row
+  { id: 4, color: "#C4A882", sx: -122, sy: 110, sr: -21, range: [0.32, 0.74] as [number, number] }, // sandy tan
+  { id: 5, color: "#7A3818", sx: 128, sy: 122, sr: 18,   range: [0.39, 0.81] as [number, number] }, // dark rust
+] as const;
+
+// ─── Hero + Puzzle Section ────────────────────────────────────────────────────
+
+export function HeroPuzzleSection({ id }: HeroPuzzleSectionProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [solved, setSolved] = useState(false);
+
+  // scrollYProgress 0→1 as user scrolls through the 280vh wrapper
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
+
+  // ── Piece transforms — each declared at top level (rule of hooks) ───────────
+  const p0x = useTransform(scrollYProgress, PIECES[0].range, [PIECES[0].sx, 0]);
+  const p0y = useTransform(scrollYProgress, PIECES[0].range, [PIECES[0].sy, 0]);
+  const p0r = useTransform(scrollYProgress, PIECES[0].range, [PIECES[0].sr, 0]);
+
+  const p1x = useTransform(scrollYProgress, PIECES[1].range, [PIECES[1].sx, 0]);
+  const p1y = useTransform(scrollYProgress, PIECES[1].range, [PIECES[1].sy, 0]);
+  const p1r = useTransform(scrollYProgress, PIECES[1].range, [PIECES[1].sr, 0]);
+
+  const p2x = useTransform(scrollYProgress, PIECES[2].range, [PIECES[2].sx, 0]);
+  const p2y = useTransform(scrollYProgress, PIECES[2].range, [PIECES[2].sy, 0]);
+  const p2r = useTransform(scrollYProgress, PIECES[2].range, [PIECES[2].sr, 0]);
+
+  const p3x = useTransform(scrollYProgress, PIECES[3].range, [PIECES[3].sx, 0]);
+  const p3y = useTransform(scrollYProgress, PIECES[3].range, [PIECES[3].sy, 0]);
+  const p3r = useTransform(scrollYProgress, PIECES[3].range, [PIECES[3].sr, 0]);
+
+  const p4x = useTransform(scrollYProgress, PIECES[4].range, [PIECES[4].sx, 0]);
+  const p4y = useTransform(scrollYProgress, PIECES[4].range, [PIECES[4].sy, 0]);
+  const p4r = useTransform(scrollYProgress, PIECES[4].range, [PIECES[4].sr, 0]);
+
+  const p5x = useTransform(scrollYProgress, PIECES[5].range, [PIECES[5].sx, 0]);
+  const p5y = useTransform(scrollYProgress, PIECES[5].range, [PIECES[5].sy, 0]);
+  const p5r = useTransform(scrollYProgress, PIECES[5].range, [PIECES[5].sr, 0]);
+
+  const transforms = [
+    { x: p0x, y: p0y, r: p0r },
+    { x: p1x, y: p1y, r: p1r },
+    { x: p2x, y: p2y, r: p2r },
+    { x: p3x, y: p3y, r: p3r },
+    { x: p4x, y: p4y, r: p4r },
+    { x: p5x, y: p5y, r: p5r },
+  ];
+
+  // Completion fires when last piece has fully settled
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    setSolved(v >= 0.84);
+  });
+
+  const puzzleW = PIECE_SIZE * 2;
+  const puzzleH = PIECE_SIZE * 3;
+
+  return (
+    // Tall wrapper — 280vh of scroll room for the sticky section
+    <div ref={containerRef} style={{ height: "280vh" }} id={id}>
+      {/* Sticky panel — stays pinned while scroll drives puzzle */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflow: "hidden",
+          background: "var(--background)",
+        }}
+      >
+        {/* Top bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.6 }}
+          className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 md:px-16 pt-8"
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            Portfolio · 2025
+          </span>
+          <div className="flex items-center gap-2">
+            <motion.span
+              animate={{ opacity: [1, 0.25, 1] }}
+              transition={{ duration: 2.8, repeat: Infinity }}
+              style={{ width: 6, height: 6, borderRadius: "50%", background: "#4A7A52", display: "inline-block" }}
+            />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", color: "#4A7A52" }}>
+              Open to work
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Two-column layout */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "55% 45%",
+            height: "100%",
+            alignItems: "center",
+            padding: "0 4rem",
+          }}
+        >
+          {/* ── LEFT: Text ── */}
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingRight: "2.5rem" }}>
+            <UnfoldBlock delay={0.45} style={{ marginBottom: 10 }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontStyle: "italic",
+                  fontSize: "clamp(1rem, 2.2vw, 1.25rem)",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                Hi —
+              </span>
+            </UnfoldBlock>
+
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(2.8rem, 7.2vw, 7rem)",
+                lineHeight: 1.0,
+                letterSpacing: "-0.025em",
+                color: "var(--foreground)",
+                marginBottom: "clamp(1.2rem, 3vw, 2.4rem)",
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0 0.26em", alignItems: "baseline" }}>
+                <UnfoldLetters text="I'm" startDelay={0.65} />
+                <UnfoldLetters text="Melissa" startDelay={0.82} />
+                <UnfoldLetters text="Bisyir." startDelay={1.18} />
+              </div>
+            </div>
+
+            <motion.div
+              style={{ height: 1, background: "var(--border)", marginBottom: 26 }}
+              initial={{ width: 0 }}
+              animate={{ width: "76%" }}
+              transition={{ delay: 1.88, duration: 0.75, ease: "easeOut" }}
+            />
+
+            <UnfoldBlock delay={2.05} style={{ marginBottom: 22 }}>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "clamp(0.6rem, 1.3vw, 0.76rem)",
+                  color: "var(--muted-foreground)",
+                  lineHeight: 1.9,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Senior Product Designer · Problem solver
+                <br />
+                Mom of two · Tejana at heart
+              </p>
+            </UnfoldBlock>
+
+            <UnfoldBlock delay={2.42} style={{ marginBottom: 38 }}>
+              <p
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "clamp(0.95rem, 1.9vw, 1.12rem)",
+                  color: "var(--foreground)",
+                  lineHeight: 1.75,
+                  fontStyle: "italic",
+                  maxWidth: 430,
+                  opacity: 0.78,
+                }}
+              >
+                "I turn chaos into clarity —
+                <br />
+                and I do it in both English and sarcasm."
+              </p>
+            </UnfoldBlock>
+
+            <UnfoldBlock delay={2.88}>
+              <button
+                onClick={() =>
+                  document.getElementById("work")?.scrollIntoView({ behavior: "smooth" })
+                }
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "var(--muted-foreground)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  padding: "10px 22px",
+                  borderRadius: 6,
+                  width: "fit-content",
+                  transition: "border-color 0.2s, color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent)";
+                  e.currentTarget.style.color = "var(--accent)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.color = "var(--muted-foreground)";
+                }}
+              >
+                See the work ↓
+              </button>
+            </UnfoldBlock>
+          </div>
+
+          {/* ── RIGHT: Puzzle ── */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
+            {/* Status label */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3.0, duration: 0.6 }}
+              style={{ marginBottom: 20, height: 20, display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  letterSpacing: "0.22em",
+                  textTransform: "uppercase",
+                  color: solved ? "#4A7A52" : "var(--muted-foreground)",
+                  transition: "color 0.4s",
+                }}
+              >
+                {solved ? "Solved ✦ Keep scrolling" : "Scroll to solve"}
+              </span>
+              {!solved && (
+                <motion.span
+                  animate={{ y: [0, 4, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  style={{
+                    display: "inline-block",
+                    color: "var(--muted-foreground)",
+                    fontSize: 13,
+                    lineHeight: 1,
+                  }}
+                >
+                  ↓
+                </motion.span>
+              )}
+            </motion.div>
+
+            {/* Puzzle container */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3.1, duration: 0.8 }}
+              style={{ position: "relative" }}
+            >
+              {/* Solved glow border */}
+              <motion.div
+                animate={solved ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                style={{
+                  position: "absolute",
+                  inset: -4,
+                  border: "1.5px solid rgba(184,104,64,0.5)",
+                  borderRadius: 3,
+                  boxShadow: "0 0 24px rgba(184,104,64,0.18), 0 0 60px rgba(184,104,64,0.08)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              {/* Pieces */}
+              <div style={{ position: "relative", width: puzzleW, height: puzzleH }}>
+                {PIECES.map((piece, i) => {
+                  const col = piece.id % 2;
+                  const row = Math.floor(piece.id / 2);
+                  const t = transforms[i];
+                  return (
+                    <motion.div
+                      key={piece.id}
+                      style={{
+                        position: "absolute",
+                        width: PIECE_SIZE,
+                        height: PIECE_SIZE,
+                        background: piece.color,
+                        left: col * PIECE_SIZE,
+                        top: row * PIECE_SIZE,
+                        x: t.x,
+                        y: t.y,
+                        rotate: t.r,
+                        zIndex: i % 2 === 0 ? 2 : 1,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Piece count indicator */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3.4 }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--muted-foreground)",
+                opacity: 0.4,
+                marginTop: 16,
+              }}
+            >
+              6 pieces · abstract composition
+            </motion.p>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3.3, duration: 0.7 }}
+          style={{
+            position: "absolute",
+            bottom: 32,
+            left: 64,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <motion.div
+            animate={{ height: [14, 24, 14] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            style={{
+              width: 1,
+              background: "linear-gradient(to bottom, transparent, var(--muted-foreground), transparent)",
+              opacity: 0.35,
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "var(--muted-foreground)",
+              opacity: 0.4,
+            }}
+          >
+            Scroll
+          </span>
+        </motion.div>
+      </div>
+    </div>
+  );
+}

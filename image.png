@@ -1,0 +1,418 @@
+import { useEffect } from "react";
+import { motion } from "motion/react";
+import { ArrowLeft, ArrowRight, Lock, Filter, HelpCircle, ShieldCheck, Hash, Lightbulb } from "lucide-react";
+import { useNavigate } from "react-router";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { CustomCursor } from "../components/CustomCursor";
+import "../../styles/fonts.css";
+
+// ─── Design system primitives ─────────────────────────────────────────────────
+
+function FadeUp({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SectionLabel({ num, label }: { num: string; label: string }) {
+  return (
+    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.26em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 10px" }}>
+      {num} — {label}
+    </p>
+  );
+}
+
+function Rule() {
+  return <div style={{ height: 1, background: "var(--border)", margin: "0 0 2.5rem" }} />;
+}
+
+function Callout({ children, accent = false }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <FadeUp>
+      <div style={{
+        background: accent ? "rgba(184,104,64,0.06)" : "var(--card)",
+        border: `1px solid ${accent ? "rgba(184,104,64,0.22)" : "var(--border)"}`,
+        borderLeft: `3px solid ${accent ? "var(--accent)" : "var(--muted)"}`,
+        borderRadius: "0 8px 8px 0",
+        padding: "1.25rem 1.5rem",
+        marginBottom: "1.5rem",
+      }}>
+        {children}
+      </div>
+    </FadeUp>
+  );
+}
+
+function WiggleTag({ label, dark = false }: { label: string; dark?: boolean }) {
+  return (
+    <motion.span
+      whileHover={{ rotate: [0, -4, 4, -2, 2, 0] }}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+      style={{
+        display: "inline-block",
+        fontFamily: "var(--font-mono)",
+        fontSize: 9,
+        letterSpacing: "0.1em",
+        color: dark ? "rgba(244,239,230,0.80)" : "var(--muted-foreground)",
+        border: `1px solid ${dark ? "rgba(244,239,230,0.32)" : "var(--border)"}`,
+        borderRadius: 4,
+        padding: "3px 9px",
+      }}
+    >
+      {label}
+    </motion.span>
+  );
+}
+
+const FINDING_ICONS = [
+  { Icon: Filter, anim: { scale: [1, 1.12, 1] }, dur: 2.6 },
+  { Icon: HelpCircle, anim: { y: [0, -5, 0] }, dur: 2.8 },
+  { Icon: ShieldCheck, anim: { rotate: [0, 6, 0, -6, 0] }, dur: 3.2 },
+  { Icon: Hash, anim: { scale: [1, 0.9, 1] }, dur: 3.0 },
+];
+
+function FindingCard({ title, body, iconIndex, accentColor, delay = 0 }: { title: string; body: string; iconIndex: number; accentColor?: string; delay?: number }) {
+  const { Icon, anim, dur } = FINDING_ICONS[iconIndex % FINDING_ICONS.length];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "1.5rem" }}
+    >
+      <motion.div animate={anim as any} transition={{ duration: dur, repeat: Infinity, ease: "easeInOut" }} style={{ width: "fit-content", marginBottom: 14 }}>
+        <Icon size={30} style={{ color: accentColor || "var(--accent)" }} strokeWidth={1.4} />
+      </motion.div>
+      <p style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem", color: "var(--foreground)", margin: "0 0 8px" }}>{title}</p>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", lineHeight: 1.72, color: "var(--muted-foreground)", margin: 0 }}>{body}</p>
+    </motion.div>
+  );
+}
+
+function VimeoEmbed({ id, title, caption }: { id: string; title: string; caption: string }) {
+  return (
+    <FadeUp style={{ margin: "2.5rem 0" }}>
+      <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 10, overflow: "hidden", background: "var(--card)" }}>
+        <iframe
+          src={`https://player.vimeo.com/video/${id}?badge=0&autopause=0&player_id=0`}
+          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          title={title}
+        />
+      </div>
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--muted-foreground)", margin: "10px 0 0", textAlign: "center" }}>{caption}</p>
+    </FadeUp>
+  );
+}
+
+function NDANotice() {
+  return (
+    <FadeUp style={{ marginBottom: "3rem" }}>
+      <div style={{ display: "flex", gap: 14, background: "rgba(42,24,16,0.04)", border: "1px solid var(--border)", borderRadius: 8, padding: "1.1rem 1.4rem" }}>
+        <Lock size={16} style={{ color: "var(--muted-foreground)", flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 4px" }}>NDA Protected</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.83rem", lineHeight: 1.65, color: "var(--muted-foreground)", margin: 0 }}>
+            Completed under a client NDA. Screens, terminology, and implementation details have been simplified or omitted. Process, design decisions, and lessons learned accurately reflect my contributions.
+          </p>
+        </div>
+      </div>
+    </FadeUp>
+  );
+}
+
+function DefinedTerm({ term, definition }: { term: string; definition: string }) {
+  return (
+    <Tooltip.Provider delayDuration={200}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <span style={{ borderBottom: "1px dotted var(--accent)", cursor: "help", color: "inherit" }}>{term}</span>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content side="top" sideOffset={6} style={{ background: "var(--foreground)", color: "var(--primary-foreground)", padding: "10px 14px", borderRadius: 8, fontSize: 12, lineHeight: 1.6, maxWidth: 300, boxShadow: "0 4px 16px rgba(42,24,16,0.2)", fontFamily: "var(--font-body)", zIndex: 9999 }}>
+            {definition}
+            <Tooltip.Arrow style={{ fill: "var(--foreground)" }} />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+  );
+}
+
+function LearningIllustration() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 130, position: "relative", margin: "1.5rem 0 2rem" }}>
+      <motion.div style={{ width: 110, height: 110, borderRadius: "50%", border: "1px solid rgba(184,104,64,0.15)", position: "absolute" }} animate={{ scale: [1, 1.07, 1] }} transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }} />
+      <motion.div style={{ width: 76, height: 76, borderRadius: "50%", border: "1.5px solid rgba(184,104,64,0.25)", position: "absolute" }} animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} />
+      <motion.div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(184,104,64,0.08)", border: "1px solid rgba(184,104,64,0.3)", position: "absolute", display: "flex", alignItems: "center", justifyContent: "center" }} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}>
+        <Lightbulb size={20} style={{ color: "var(--accent)" }} strokeWidth={1.4} />
+      </motion.div>
+      {[[-34, -26], [36, -22], [-28, 32], [32, 30]].map(([x, y], i) => (
+        <motion.div key={i} style={{ width: i % 2 === 0 ? 6 : 4, height: i % 2 === 0 ? 6 : 4, borderRadius: "50%", background: "var(--accent)", opacity: 0.45, position: "absolute", left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }} animate={{ y: [0, -7, 0], opacity: [0.35, 0.75, 0.35] }} transition={{ duration: 2.5 + i * 0.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.35 }} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export function USDAMSPage() {
+  const navigate = useNavigate();
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  return (
+    <div style={{ background: "var(--background)", fontFamily: "var(--font-body)", minHeight: "100vh" }}>
+      <CustomCursor />
+
+      {/* Top nav */}
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(250,246,238,0.90)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--border)", padding: "14px clamp(1.5rem, 5vw, 4rem)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <motion.button
+          onClick={() => navigate("/")}
+          whileHover={{ x: -3 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted-foreground)", background: "none", border: "none", cursor: "none", transition: "color 0.2s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
+        >
+          <ArrowLeft size={14} /> Portfolio
+        </motion.button>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>Case Study · 03</span>
+      </div>
+
+      {/* Hero */}
+      <div style={{ background: "#2A1810", padding: "5rem clamp(1.5rem, 5vw, 4rem) 4rem" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: "1.5rem" }}>
+            {["Federal", "Reporting", "Data Design", "508 Accessible"].map(t => <WiggleTag key={t} label={t} dark />)}
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 5vw, 3.8rem)", lineHeight: 1.1, color: "#F0E8DC", margin: "0 0 1.25rem", fontWeight: 400 }}>
+            Making Complex Reporting Feel Manageable
+          </motion.h1>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} style={{ fontFamily: "var(--font-body)", fontSize: "1.05rem", lineHeight: 1.72, color: "rgba(244,239,230,0.65)", maxWidth: 600, margin: 0 }}>
+            Adapting and extending the PPR framework to support USDA AMS reporting requirements while reducing burden, improving clarity, and building recipient confidence.
+          </motion.p>
+        </div>
+      </div>
+
+      {/* Meta grid */}
+      <div style={{ background: "var(--secondary)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", padding: "3rem clamp(1.5rem, 5vw, 4rem)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "2.5rem 3rem" }}>
+            {[
+              { label: "Role", value: "UX/UI Designer · Content Design · Interaction Design · Visual QA" },
+              { label: "Organization", value: "GrantSolutions" },
+              { label: "Timeline", value: "2021 – 2022" },
+              { label: "Foundation", value: "Built upon original PPR framework by Sahar Zavaree" },
+            ].map(item => (
+              <div key={item.label}>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 8px" }}>{item.label}</p>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.9rem", lineHeight: 1.65, color: "var(--foreground)", margin: 0 }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "4rem clamp(1.5rem, 5vw, 4rem)" }}>
+
+        <NDANotice />
+
+        {/* Overview */}
+        <FadeUp><SectionLabel num="01" label="Overview" /></FadeUp>
+        <Rule />
+        <FadeUp>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.8, color: "var(--muted-foreground)", marginBottom: "1.25rem" }}>
+            USDA AMS programs rely on Performance Progress Reports to collect program outcomes, funding information, and recipient impact data. This work focused on adapting and extending the existing PPR framework to support the unique requirements of multiple USDA AMS programs while maintaining platform consistency.
+          </p>
+        </FadeUp>
+        <Callout>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 5px" }}>Foundation note</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", lineHeight: 1.65, color: "var(--foreground)", margin: 0 }}>
+            This project was built upon the original PPR framework designed by Sahar Zavaree. My work focused on evolving the framework for USDA-specific requirements.{" "}
+            <motion.a href="https://saharzavaree.com/project/performance-progress-report" target="_blank" rel="noopener noreferrer" whileHover={{ x: 3 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} style={{ color: "var(--accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>View Sahar's case study <ArrowRight size={13} /></motion.a>
+          </p>
+        </Callout>
+
+        {/* My Responsibility */}
+        <FadeUp style={{ marginTop: "3rem" }}><SectionLabel num="02" label="My Responsibility" /></FadeUp>
+        <Rule />
+        <FadeUp>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.8, color: "var(--muted-foreground)", marginBottom: "1.25rem" }}>
+            I joined during the refinement and implementation phase, adapting the framework to USDA-specific requirements. Hover underlined terms for plain-English definitions — helpful for anyone outside the design field.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: "1rem" }}>
+            {[
+              { term: "Requirements gathering and stakeholder reviews", def: "Sitting in meetings with program managers and clients, figuring out what they need, then showing designs and iterating on feedback." },
+              { term: "Translating business requirements into reporting workflows", def: "Taking a vague ask like 'we need a report on X' and turning it into an actual step-by-step screen flow." },
+              { term: "Designing conditional reporting experiences", def: "Designing screens that change based on earlier choices — selecting one option reveals different fields than selecting another." },
+              { term: "Creating contextual help and guidance patterns", def: "Designing tooltips and helper text that appear exactly when someone is confused, without making them leave the workflow." },
+              { term: "Defining validation and error handling approaches", def: "Deciding rules for valid input, and designing how the product tells users when they've made a mistake." },
+              { term: "Designing attachment management workflows", def: "Designing how people upload, preview, replace, or delete files inside the product." },
+              { term: "Supporting implementation through Visual QA", def: "After developers build screens, comparing them to designs and flagging anything that doesn't match — spacing, colors, missing states." },
+              { term: "Conducting accessibility reviews", def: "Checking that designs work for people with disabilities — contrast ratios, screen reader usability, keyboard navigation." },
+              { term: "Contributing reusable interaction patterns to the design system", def: "Turning one-off design solutions into standardized, reusable components added to the shared component library." },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", flexShrink: 0, marginTop: 8 }} />
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.88rem", lineHeight: 1.65, color: "var(--muted-foreground)", margin: 0 }}>
+                  <DefinedTerm term={item.term} definition={item.def} />
+                </p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: "3rem" }} />
+        </FadeUp>
+
+        {/* Challenge */}
+        <FadeUp><SectionLabel num="03" label="The Challenge" /></FadeUp>
+        <Rule />
+        <FadeUp>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.8, color: "var(--muted-foreground)", marginBottom: "1.25rem" }}>
+            USDA AMS programs shared a common reporting structure, but each program introduced unique metrics, funding structures, validation rules, and approval workflows. The challenge was creating a reporting experience that could flex to program-specific requirements <em>without building entirely separate experiences for each program.</em>
+          </p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.8, color: "var(--muted-foreground)", marginBottom: "3rem" }}>
+            Recipients also needed to feel confident completing reports correctly without becoming overwhelmed by lengthy forms and unfamiliar terminology.
+          </p>
+        </FadeUp>
+
+        {/* Methodology */}
+        <FadeUp><SectionLabel num="04" label="Methodology" /></FadeUp>
+        <Rule />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "3rem" }}>
+          {[
+            { name: "Stakeholder Walk-Throughs", note: "Detailed review sessions with USDA stakeholders to evaluate reporting requirements section by section" },
+            { name: "Requirements Analysis", note: "Reviewed reporting rules, data collection needs, business logic, and approval workflows across multiple programs" },
+            { name: "Technical Feasibility", note: "Collaborated with developers to understand capabilities, attachment handling, and implementation constraints" },
+            { name: "Iterative Design Reviews", note: "Refined workflows through ongoing stakeholder and engineering feedback cycles" },
+          ].map((m, i) => (
+            <FadeUp key={m.name} delay={i * 0.07}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "1.1rem 1.25rem", height: "100%" }}>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B7E6A", margin: "0 0 8px" }}>{m.name}</p>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.83rem", lineHeight: 1.65, color: "var(--muted-foreground)", margin: 0 }}>{m.note}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+
+        {/* Key Findings */}
+        <FadeUp><SectionLabel num="05" label="Key Findings" /></FadeUp>
+        <Rule />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "3rem" }}>
+          <FindingCard iconIndex={0} delay={0.00} title="Not Every Recipient Had Activity to Report" body="Many sections only applied under specific circumstances — showing them unconditionally added confusion and unnecessary length." accentColor="#6B7E6A" />
+          <FindingCard iconIndex={1} delay={0.08} title="Guidance Needed to Live Inside the Experience" body="Recipients needed clarification on terminology and expectations without leaving the workflow to find help." accentColor="#6B7E6A" />
+          <FindingCard iconIndex={2} delay={0.16} title="Error Prevention Over Error Recovery" body="Reporting mistakes created additional effort for both recipients and reviewers — prevention was more valuable than correction." accentColor="#6B7E6A" />
+          <FindingCard iconIndex={3} delay={0.24} title="Support Teams Needed Better Question Referencing" body="Sequential question numbering played a critical role when helping recipients troubleshoot reporting issues remotely." accentColor="#6B7E6A" />
+        </div>
+
+        {/* Design Actions */}
+        <FadeUp><SectionLabel num="06" label="Design Decisions" /></FadeUp>
+        <Rule />
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+          {[
+            { decision: "Conditional Reporting Logic", detail: "Yes/No pathways revealed relevant reporting sections only when applicable, reducing cognitive load and unnecessary length." },
+            { decision: "Contextual Guidance", detail: "Embedded definitions, examples, and helper text directly in the experience — support without leaving the workflow." },
+            { decision: "Validation & Error Prevention", detail: "Numeric, currency, and required-field validation patterns improved data quality and reduced submission errors." },
+            { decision: "Attachment Management", detail: "Structured attachment experiences supporting multiple document types with improved organization and review efficiency." },
+            { decision: "Permission & Signature States", detail: "Clear communication of user permissions, signing responsibilities, and next-step actions when access was limited." },
+          ].map((item, i) => (
+            <FadeUp key={i} delay={i * 0.06}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "1.1rem 1.5rem", display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted-foreground)", flexShrink: 0, paddingTop: 2 }}>0{i + 1}</span>
+                <div>
+                  <p style={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "var(--foreground)", margin: "0 0 4px" }}>{item.decision}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", lineHeight: 1.65, color: "var(--muted-foreground)", margin: 0 }}>{item.detail}</p>
+                </div>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+
+        <VimeoEmbed id="428633430" title="USDA PPR Demo" caption="USDA AMS Performance Progress Reports — Vimeo demo (publicly available)" />
+
+        {/* Beyond the Form */}
+        <FadeUp><SectionLabel num="07" label="Beyond the Form" /></FadeUp>
+        <Rule />
+        <FadeUp>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.8, color: "var(--muted-foreground)", marginBottom: "1.25rem" }}>
+            As reporting requirements grew more complex, the project became an opportunity to establish reusable interaction patterns — error messaging, disabled states, upload failures, download experiences, delete confirmations, permission restriction handling, tooltip guidance, and signature workflows.
+          </p>
+        </FadeUp>
+        <Callout accent>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.88rem", lineHeight: 1.72, color: "var(--foreground)", margin: 0 }}>
+            Many of these patterns later influenced our team's design system and future design experiences — turning project-specific solutions into reusable standards.
+          </p>
+        </Callout>
+
+        {/* Outcomes */}
+        <FadeUp style={{ marginTop: "3rem" }}><SectionLabel num="08" label="Outcomes" /></FadeUp>
+        <Rule />
+        <FadeUp>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem 1.5rem", marginBottom: "3rem" }}>
+            {[
+              "Supported reporting across multiple USDA AMS programs",
+              "Reduced unnecessary reporting through conditional logic",
+              "Improved guidance throughout complex workflows",
+              "Increased consistency in data collection",
+              "Improved attachment organization and review efficiency",
+              "Established reusable interaction standards for future projects",
+              "Supported accessible implementation through ongoing Visual QA",
+            ].map((o, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#6B7E6A", flexShrink: 0, marginTop: 8 }} />
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", lineHeight: 1.65, color: "var(--muted-foreground)", margin: 0 }}>{o}</p>
+              </div>
+            ))}
+          </div>
+        </FadeUp>
+
+        {/* What I Learned */}
+        <FadeUp><SectionLabel num="09" label="What I Learned" /></FadeUp>
+        <Rule />
+        <LearningIllustration />
+        <Callout accent>
+          <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "1.15rem", lineHeight: 1.4, color: "var(--foreground)", margin: "0 0 12px" }}>
+            "Designing every state matters. Users build confidence through guidance, validation, permissions, and thoughtful handling of every interaction — not just the happy path."
+          </p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.88rem", lineHeight: 1.72, color: "var(--muted-foreground)", margin: 0 }}>
+            The biggest takeaway: a scalable design framework can evolve across multiple programs without sacrificing consistency. The challenge wasn't creating new experiences — it was knowing where to standardize and where flexibility was necessary.
+          </p>
+        </Callout>
+      </div>
+
+      {/* Footer nav */}
+      <div style={{ borderTop: "1px solid var(--border)", padding: "2.5rem clamp(1.5rem, 5vw, 4rem)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", background: "var(--secondary)" }}>
+        <motion.button
+          onClick={() => navigate("/")}
+          whileHover={{ x: -3 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted-foreground)", background: "none", border: "none", cursor: "none", transition: "color 0.2s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
+        >
+          <ArrowLeft size={14} /> Back to Portfolio
+        </motion.button>
+        <motion.button
+          onClick={() => navigate("/work/unified-experience")}
+          whileHover={{ x: -3 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted-foreground)", background: "none", border: "none", cursor: "none", transition: "color 0.2s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
+        >
+          <ArrowLeft size={14} /> Unified Experience
+        </motion.button>
+      </div>
+    </div>
+  );
+}
